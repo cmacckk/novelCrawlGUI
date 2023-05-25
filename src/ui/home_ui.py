@@ -17,6 +17,8 @@ class HomeUI(QWidget):
 
         self.globalVerticalLayout = QVBoxLayout()
         self.globalVerticalLayout.setSpacing(0)
+        
+        self.progressBar = QProgressBar()
 
         self.setupFirstHorizontalLayout()
         self.setupSecondHorizontalLayout()
@@ -48,7 +50,7 @@ class HomeUI(QWidget):
         self.secondHorizontalLayout.setSpacing(0)
         self.secondHorizontalLayout.setContentsMargins(0, 0, 0, 10)
 
-        self.novelShowTableView = NovelTableView()
+        self.novelShowTableView = NovelTableView(self.progressBar)
 
         data = [
             # ["小说1", "作者1", "书籍号1", "来源1"],
@@ -69,8 +71,6 @@ class HomeUI(QWidget):
     def setupThirdHorizontalLayout(self):
         self.thirdHorizontalLayout = QHBoxLayout()
         self.thirdHorizontalLayout.setSpacing(0)
-
-        self.progressBar = QProgressBar()
 
         self.thirdHorizontalLayout.addWidget(self.progressBar)
 
