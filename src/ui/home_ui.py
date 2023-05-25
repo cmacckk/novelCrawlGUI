@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QProgressBar, QHeaderView
 from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QIcon
 from src.ui.novel_table_model import NovelTableModel
 from src.ui.center_table_view import CenterTableView
 from src.ui.novel_table_view import NovelTableView
@@ -14,6 +15,7 @@ class HomeUI(QWidget):
     def setupUI(self):
         self.setWindowTitle("小说下载器 by CC")
         self.resize(QSize(500, 650))
+        self.setWindowIcon(QIcon("./images/book.png"))
 
         self.globalVerticalLayout = QVBoxLayout()
         self.globalVerticalLayout.setSpacing(0)

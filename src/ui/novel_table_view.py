@@ -139,7 +139,7 @@ class NovelTableView(QTableView):
 
             with open(join(self.outputPath,self.novelName) + '.txt', "w", encoding='utf-8') as file:
                 for key, chapter in sortedResults.items():
-                    print(key)
+                    # print(key)
                     file.write(chapter['title'] + '\n\n' +
                             chapter['content'] + '\n')
 
