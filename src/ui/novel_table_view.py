@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QTableView, QMenu, QApplication, QProgressBar, QFileDialog, QMessageBox
 from PyQt6.QtCore import QVariant, Qt, QThreadPool, QRunnable, pyqtSignal, QObject, pyqtSlot
 from PyQt6.QtGui import QAction, QKeySequence
+from collections import OrderedDict
 from os.path import join
 from src.biquge.bige7 import Bige7
 from src.biquge.bige5200 import BiQuGe5200Net
@@ -13,6 +14,7 @@ class NovelTableView(QTableView):
         self.progressBar = progressBar
         self.threadPool = QThreadPool()
         self.resultList = []
+        self.threadIDList = []
         self.novelName = ''
         self.outputPath = './'
 
@@ -81,10 +83,12 @@ class NovelTableView(QTableView):
                 novelName = f"{rowData[0]}-{rowData[1]}-{rowData[3]}"
 
                 self.outputPath = QFileDialog.getExistingDirectory(self, "Select Output Path", "./", QFileDialog.Option.ShowDirsOnly)
-                print(self.outputPath)
+                # print(self.outputPath)
                 # setting process bar to 0
                 self.progressBar.setValue(0)
                 self.resultList = []
+                self.threadIDList = []
+                self.results = {}
                 # get novel name and chapter urls
                 if rowData[3] == 'bqg70':
                     _, chapterUrlList = Bige7().getBiGe7CrawlUrls("https://www.bqg70.com/book/" + rowData[2])
@@ -106,12 +110,12 @@ class NovelTableView(QTableView):
 
     def startDownload(self, siteType: str, chapterUrlList: list):
         self.completedUrls = 0
-        for url in chapterUrlList:
-            self.startSingleDownloadThread(url, siteType)
+        for threadID, url in enumerate(chapterUrlList):
+            self.startSingleDownloadThread(url, siteType, threadID)
 
-    def startSingleDownloadThread(self, url, siteType: str):
+    def startSingleDownloadThread(self, url, siteType: str, threadID: int):
         # create download thread
-        download_thread = CrawlNovelThread(url, siteType)
+        download_thread = CrawlNovelThread(url, siteType, threadID)
         # connect thread signal slot
         download_thread.signals.finishedSignal.connect(self.completeCrawling)
         download_thread.signals.resultSignal.connect(self.updateNovelContent)
@@ -124,28 +128,38 @@ class NovelTableView(QTableView):
         self.updateProgress(progress)
 
         if self.completedUrls == self.totalUrls:
+            for i, value in enumerate(self.resultList):
+                self.results[self.threadIDList[i]] = value
+
+            # sort results by threadID
+            # chapter title is in order
+            sortedResults = OrderedDict(sorted(self.results.items(), key=lambda x: x[0]))
+
             QMessageBox.about(self, "Done", "小说下载完成，文件已保存到" + join(self.outputPath,self.novelName) + '.txt')
 
-        with open(join(self.outputPath,self.novelName) + '.txt', "w", encoding='utf-8') as file:
-            for chapter in self.resultList:
-                file.write(chapter['title'] + '\n\n' +
-                           chapter['content'] + '\n')
+            with open(join(self.outputPath,self.novelName) + '.txt', "w", encoding='utf-8') as file:
+                for key, chapter in sortedResults.items():
+                    print(key)
+                    file.write(chapter['title'] + '\n\n' +
+                            chapter['content'] + '\n')
 
 
-    def updateNovelContent(self, resultDict: dict):
+    def updateNovelContent(self, threadID: int, resultDict: dict):
+        self.threadIDList.append(threadID)
         self.resultList.append(resultDict)
 
 
 class CrawlNovelThreadSignals(QObject):
     finishedSignal = pyqtSignal()
-    resultSignal = pyqtSignal(dict)
+    resultSignal = pyqtSignal(int, dict)
 
 
 class CrawlNovelThread(QRunnable):
-    def __init__(self, url, siteType: str):
+    def __init__(self, url, siteType: str, threadID: int):
         super().__init__()
         self.url = url
         self.siteType = siteType
+        self.threadID = threadID
         self.signals = CrawlNovelThreadSignals()
 
     @pyqtSlot()
@@ -157,8 +171,8 @@ class CrawlNovelThread(QRunnable):
                 resultDict = BiQuGe5200Net().crawl_chapter_title_content(self.url)
             if self.siteType == 'ibiquge':
                 resultDict = IBiQuGeOrg().crawl_chapter_title_content(self.url)
-            self.signals.resultSignal.emit(resultDict)
-        except Exception as e:
-            self.signals.resultSignal.emit({"title": "Error", "Content": "Error"})
+            self.signals.resultSignal.emit(self.threadID, resultDict)
+        except:
+            self.signals.resultSignal.emit(self.threadID, {"title": "Error", "Content": "Error"})
         finally:
             self.signals.finishedSignal.emit()

@@ -17,7 +17,7 @@ class HomeUI(QWidget):
 
         self.globalVerticalLayout = QVBoxLayout()
         self.globalVerticalLayout.setSpacing(0)
-        
+
         self.progressBar = QProgressBar()
 
         self.setupFirstHorizontalLayout()
@@ -39,6 +39,7 @@ class HomeUI(QWidget):
         self.searchButton.clicked.connect(self.searchEvent)
 
         self.searchTextLineEdit = QLineEdit()
+        self.searchTextLineEdit.editingFinished.connect(self.searchButton.click)
         self.searchTextLineEdit.setPlaceholderText("搜索的小说名")
         self.searchTextLineEdit.setContentsMargins(0, 0, 10, 0)
 
@@ -52,11 +53,7 @@ class HomeUI(QWidget):
 
         self.novelShowTableView = NovelTableView(self.progressBar)
 
-        data = [
-            # ["小说1", "作者1", "书籍号1", "来源1"],
-            # ["小说2", "作者2", "书籍号2", "来源2"],
-            # ["小说3", "作者3", "书籍号3", "来源3"]
-        ]
+        data = []
 
         self.novelModel = NovelTableModel(data)
         self.novelShowTableView.setModel(self.novelModel)
@@ -76,7 +73,7 @@ class HomeUI(QWidget):
 
     def searchEvent(self):
         book = self.searchTextLineEdit.text().strip()
-        print(book)
+        # print(book)
         self.searchThread = SearchThread(book)
         self.searchThread.booksSignal.connect(self.searchSignalEvent)
         self.searchThread.progressSignal.connect(self.searchProgressSignalEvent)
