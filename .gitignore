@@ -2,3 +2,6 @@
 __pycache__
 outout/
 *.txt
+build/
+dist/
+*.spec
