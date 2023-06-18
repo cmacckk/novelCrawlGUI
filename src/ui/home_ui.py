@@ -78,8 +78,8 @@ class HomeUI(QWidget):
         book = self.searchTextLineEdit.text().strip()
         print(book)
         self.searchThread = SearchThread(book)
-        self.searchThread.booksSignal.connect(self.searchSignalEvent)
-        self.searchThread.progressSignal.connect(self.searchProgressSignalEvent)
+        self.searchThread.books_signal.connect(self.searchSignalEvent)
+        self.searchThread.progress_signal.connect(self.searchProgressSignalEvent)
         self.searchThread.start()
 
     def searchSignalEvent(self, books):

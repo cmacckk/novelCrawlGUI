@@ -2,9 +2,8 @@ from PyQt6.QtWidgets import QTableView, QMenu, QApplication, QProgressBar, QFile
 from PyQt6.QtCore import QVariant, Qt, QThreadPool, QRunnable, pyqtSignal, QObject, pyqtSlot
 from PyQt6.QtGui import QAction, QKeySequence
 from os.path import join
-from src.biquge.bige7 import Bige7
-from src.biquge.bige5200 import BiQuGe5200Net
-from src.biquge.ibiquge_org import IBiQuGeOrg
+from src.biquge.biquge70 import Biquge70
+from src.biquge.biquge5200 import Biquge5200
 
 
 class NovelTableView(QTableView):
@@ -12,6 +11,7 @@ class NovelTableView(QTableView):
         super().__init__(parent)
         self.progressBar = progressBar
         self.threadPool = QThreadPool()
+        # self.threadPool.setMaxThreadCount(20)
         self.resultList = []
         self.novelName = ''
         self.outputPath = './'
@@ -87,11 +87,9 @@ class NovelTableView(QTableView):
                 self.resultList = []
                 # get novel name and chapter urls
                 if rowData[3] == 'bqg70':
-                    _, chapterUrlList = Bige7().getBiGe7CrawlUrls("https://www.bqg70.com/book/" + rowData[2])
+                    _, chapterUrlList = Biquge70().crawl_book_chapter_urls("https://www.bqg70.com/book/" + rowData[2])
                 if rowData[3] == 'biqu5200':
-                    _, chapterUrlList = BiQuGe5200Net().crawl_book_chapter_urls(rowData[2])
-                if rowData[3] == 'ibiquge':
-                    _, chapterUrlList = IBiQuGeOrg().crawl_book_chapter_urls(rowData[2])
+                    _, chapterUrlList = Biquge5200().crawl_book_chapter_urls(rowData[2])
 
                 self.novelName = novelName
 
@@ -128,8 +126,11 @@ class NovelTableView(QTableView):
 
         with open(join(self.outputPath,self.novelName) + '.txt', "w", encoding='utf-8') as file:
             for chapter in self.resultList:
-                file.write(chapter['title'] + '\n\n' +
-                           chapter['content'] + '\n')
+                try:
+                    file.write(chapter['title'] + '\n\n' +
+                            chapter['content'] + '\n')
+                except KeyError as e:
+                    print(chapter)
 
 
     def updateNovelContent(self, resultDict: dict):
@@ -152,13 +153,11 @@ class CrawlNovelThread(QRunnable):
     def run(self):
         try:
             if self.siteType == 'bqg70':
-                resultDict = Bige7().getBiGe7SpotSingleChapterTitleContent(self.url)
+                resultDict = Biquge70().crawl_chapter_title_content(self.url)
             if self.siteType == 'biqu5200':
-                resultDict = BiQuGe5200Net().crawl_chapter_title_content(self.url)
-            if self.siteType == 'ibiquge':
-                resultDict = IBiQuGeOrg().crawl_chapter_title_content(self.url)
+                resultDict = Biquge5200().crawl_chapter_title_content(self.url)
             self.signals.resultSignal.emit(resultDict)
-        except Exception as e:
+        except Exception as error:
             self.signals.resultSignal.emit({"title": "Error", "Content": "Error"})
         finally:
             self.signals.finishedSignal.emit()
