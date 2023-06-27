@@ -15,7 +15,8 @@ class SearchThread(QThread):
     def run(self):
         result_list = []
         book_info_70 = Biquge70().search_book(self.book)
-        _ = [result_list.append([book_info['book'], book_info['author'], book_info['book_id'], book_info['source']]) for book_info in book_info_70]
+        if book_info_70 is not None:
+            _ = [result_list.append([book_info['book'], book_info['author'], book_info['book_id'], book_info['source']]) for book_info in book_info_70]
         self.progress_signal.emit(50)
         book_info_5200 = Biquge5200().search_book(self.book)
         _ = [result_list.append([book_info['book'], book_info['author'], book_info['book_id'], book_info['source']]) for book_info in book_info_5200]

@@ -1,5 +1,5 @@
 import requests
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from lxml import etree
 from urllib.parse import urljoin, urlparse
 from multiprocessing import Pool
@@ -13,6 +13,7 @@ from src.log.log import LOGGER
 
 class Biquge70:
     """ site url: https://www.bqg70.com/ """
+
     def search_book(self, book):
         """ search book
 
@@ -22,31 +23,38 @@ class Biquge70:
                                  'author': 'author',
                                  'source': 'source'}]
         """
-        headers = {"User-Agent": generate_random_user_agent()}
-        response = requests.get(url='https://m.bqgso.cc/search_json?q=' + book,
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                                 'Chrome/114.0.0.0 Safari/537.36',
+                   }
+        response = requests.get(url='https://m.bqgso.cc/search_json?q=' + quote(book),
                                 headers=headers,
-                                timeout=TIMEOUT)
+                                timeout=TIMEOUT,)
         html_content = response.content.decode('utf-8')
 
         info_json = json.loads(html_content)
 
         book_info = []
 
-        # return book info
-        for i, data in enumerate(info_json):
-            if data['url_list'].endswith('/'):
-                book_id = urlparse(data['url_list']).path.split('/')[-2]
-            else:
-                book_id = urlparse(data['url_list']).path.split('/')[-1]
-            book_info.append(
-                {
-                    'book': data['articlename'],
-                    'book_id': book_id,
-                    'author': data['author'],
-                    'source': 'bqg70'
-                }
-            )
-        return book_info
+        try:
+            # return book info
+            for i, data in enumerate(info_json):
+                if data['url_list'].endswith('/'):
+                    book_id = urlparse(data['url_list']).path.split('/')[-2]
+                else:
+                    book_id = urlparse(data['url_list']).path.split('/')[-1]
+                book_info.append(
+                    {
+                        'book': data['articlename'],
+                        'book_id': book_id,
+                        'author': data['author'],
+                        'source': 'bqg70'
+                    }
+                )
+            return book_info
+        except TypeError as error:
+            LOGGER.error(error)
+            return
+
 
     def crawl_book_chapter_urls(self, book_url):
         """ get book name and chapter urls """
@@ -54,7 +62,7 @@ class Biquge70:
         url = parsed.scheme + "://" + parsed.netloc
 
         response = requests.get(book_url, headers={
-                                "User-Agent": generate_random_user_agent()})
+            "User-Agent": generate_random_user_agent()})
 
         html_content = response.content.decode('utf-8')
         xml = etree.HTML(html_content)
@@ -67,6 +75,7 @@ class Biquge70:
             if "book" in path:
                 book_chapter_url_list.append(urljoin(url, path))
         return book_name, book_chapter_url_list
+
 
     def crawl_chapter_title_content(self, url):
         """ get single chapter title and content """
@@ -93,7 +102,8 @@ class Biquge70:
 
         with Pool(thread) as p:
             all_chapter_content = list(tqdm(p.imap(self.crawl_chapter_title_content,
-                                     book_chapter_url_list[:-10]), total=len(book_chapter_url_list[:-10])))
+                                                   book_chapter_url_list[:-10]),
+                                            total=len(book_chapter_url_list[:-10])))
 
         with open(path + book[0] + '.txt', "w", encoding='utf-8') as file:
             for chapter in all_chapter_content:
