@@ -26,9 +26,10 @@ class Biquge70:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
                                  'Chrome/114.0.0.0 Safari/537.36',
                    }
-        response = requests.get(url='https://m.bqgso.cc/search_json?q=' + quote(book),
+        response = requests.get(url='https://www.bqg70.com/user/search.html?q=' + quote(book),
                                 headers=headers,
                                 timeout=TIMEOUT,)
+        print(response)
         html_content = response.content.decode('utf-8')
 
         info_json = json.loads(html_content)
