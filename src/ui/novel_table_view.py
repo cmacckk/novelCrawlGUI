@@ -3,7 +3,6 @@ from PyQt6.QtCore import QVariant, Qt, QThreadPool, QRunnable, pyqtSignal, QObje
 from PyQt6.QtGui import QAction, QKeySequence
 from os.path import join
 from src.biquge.biquge70 import Biquge70
-from src.biquge.biquge5200 import Biquge5200
 
 
 class NovelTableView(QTableView):
@@ -88,8 +87,6 @@ class NovelTableView(QTableView):
                 # get novel name and chapter urls
                 if rowData[3] == 'bqg70':
                     _, chapterUrlList = Biquge70().crawl_book_chapter_urls("https://www.bqg70.com/book/" + rowData[2])
-                if rowData[3] == 'biqu5200':
-                    _, chapterUrlList = Biquge5200().crawl_book_chapter_urls(rowData[2])
 
                 self.novelName = novelName
 
@@ -154,8 +151,6 @@ class CrawlNovelThread(QRunnable):
         try:
             if self.siteType == 'bqg70':
                 resultDict = Biquge70().crawl_chapter_title_content(self.url)
-            if self.siteType == 'biqu5200':
-                resultDict = Biquge5200().crawl_chapter_title_content(self.url)
             self.signals.resultSignal.emit(resultDict)
         except Exception as error:
             self.signals.resultSignal.emit({"title": "Error", "Content": "Error"})

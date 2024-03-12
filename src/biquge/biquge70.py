@@ -1,9 +1,14 @@
 import requests
 from urllib.parse import urlparse, quote
 from lxml import etree
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 from multiprocessing import Pool
 from tqdm import tqdm
+import time
+
+from DrissionPage import WebPage, ChromiumOptions
+from DrissionPage.errors import ElementNotFoundError
+from DrissionPage.common import By
 
 import json
 from src.utils.get_user_agent import generate_random_user_agent
@@ -13,6 +18,47 @@ from src.log.log import LOGGER
 
 class Biquge70:
     """ site url: https://www.bqg70.com/ """
+    
+    def search_by_drission_page(self, book_name):
+        """ Use DrissionPage func to crawl book information """
+        LOGGER.info("Search book %s", book_name)
+        chromium_options = ChromiumOptions()
+        chromium_options.set_argument('--headless')
+        page = WebPage(driver_or_options=chromium_options)
+        page.get('https://www.bqg70.com/')
+        page.ele('@name=q').input(book_name)
+        page.ele('@type=submit').click()
+        loop = 5
+        page.wait.load_start()
+        try:
+            for index in range(loop):
+                div = page.ele('@class=hots', timeout=4)
+                if div.text == '加载中……':
+                    LOGGER.info('Loading search result, wait 2s, try %s', index + 1)
+                    time.sleep(2)
+                else:
+                    break
+            if div.text == '暂无':
+                return '暂时无法使用搜索功能'
+        except ElementNotFoundError:
+            LOGGER.info('Loading over...')
+
+        authors_loc = (By.XPATH, '//div[@class="author"]')
+        book_names_loc = (By.XPATH, '//h4[@class="bookname"]/a')
+
+        authors = page.eles(authors_loc)
+        book_names = page.eles(book_names_loc)
+
+        book_info = []
+        for index, name in enumerate(book_names):
+            book_info.append(
+                {'book': name.text,
+                'book_id': name.link.split('/')[-2],
+                'author': authors[index].text.split('：')[-1],
+                'source': 'bqg70'}
+            )
+        page.close_driver()
+        return book_info
 
     def search_book(self, book):
         """ search book
